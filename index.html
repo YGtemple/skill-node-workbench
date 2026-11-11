@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>技能节点工作台 · 短视频流水线</title>
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <span class="brand-mark">技</span>
+      <div>
+        <h1>技能节点工作台 <span class="tag">技能驱动</span></h1>
+        <p>一句话创意 → 分析 → 剧本 → 美术 → 分镜 → 逐镜视频 → 任务包 → 成片，每一步都可以换成自己的技能</p>
+      </div>
+    </div>
+    <nav class="nav">
+      <button class="nav-btn active" data-view="pipeline">流水线编排</button>
+      <button class="nav-btn" data-view="library">技能库</button>
+      <button class="nav-btn" data-view="run">拆解结果</button>
+      <button class="nav-btn" id="channelBtn">模型通道</button>
+    </nav>
+  </header>
+
+  <main>
+    <div class="status-banner">
+      <b id="bannerTitle">技能已就绪</b>
+      <span id="bannerText">每个节点当前绑定的技能在画布上直接可见，点击节点即可更换、排序或解绑。</span>
+      <span class="banner-right" id="bannerMeta"></span>
+    </div>
+
+    <!-- 流水线编排 -->
+    <section id="view-pipeline" class="view">
+      <div class="card brief-card">
+        <div class="brief-head"><span class="live-dot"></span><b>一句话创意</b><span class="hint" id="modeHint"></span></div>
+        <textarea id="brief" rows="2" placeholder="例如：用名场面穿越的方式，让 3800 吨门机与愚公移山同框"></textarea>
+        <div class="params">
+          <label>风格
+            <select id="pStyle">
+              <option>工业史诗</option>
+              <option>产品科普</option>
+              <option>品牌宣言</option>
+              <option>名场面穿越</option>
+            </select>
+          </label>
+          <label>画幅
+            <select id="pRatio">
+              <option>16:9</option>
+              <option>9:16</option>
+            </select>
+          </label>
+          <label>目标时长（秒）<input id="pDuration" type="number" min="10" max="180" value="60" /></label>
+          <label>镜数<input id="pScenes" type="number" min="4" max="14" value="7" /></label>
+          <div class="actions">
+            <button class="btn primary" id="runBtn">一键拆解</button>
+            <button class="btn" id="assembleBtn">装配全部提示词</button>
+            <button class="btn" id="packBtn">导出任务包</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="card flow-card">
+        <div class="flow-card-head">
+          <div><strong>创作画布</strong><span id="flowMeta" class="hint"></span></div>
+          <span class="hint">节点下方显示当前技能 · 点击节点查看绑定</span>
+        </div>
+        <div class="flow-canvas"><div id="flowNodes" class="flow-nodes"></div></div>
+      </div>
+
+      <div class="card node-panel" id="nodePanel"></div>
+    </section>
+
+    <!-- 技能库 -->
+    <section id="view-library" class="view hidden">
+      <div class="card upload-card">
+        <div class="upload-zone" id="dropZone">
+          <b>上传技能</b>
+          <p>拖入文件，或点击选择 <code>.md</code> 技能文件、<code>.zip</code> 技能包、<code>.json</code> 技能集合。技能里的 <code>node</code> 决定它挂到哪个节点。</p>
+          <input type="file" id="fileInput" multiple accept=".md,.markdown,.txt,.zip,.json" />
+          <span class="upload-note">上传不会覆盖同 id 技能，会提示你确认；密钥与配置不写入任何技能文件。</span>
+        </div>
+      </div>
+
+      <div class="card lib-toolbar">
+        <div class="lib-filters">
+          <select id="libNodeFilter"><option value="">所有节点</option></select>
+          <input id="libSearch" placeholder="搜索技能名称、标签或说明" />
+        </div>
+        <div class="lib-actions">
+          <button class="btn small" id="restoreBtn">恢复内置技能</button>
+          <button class="btn small" id="exportAllBtn">导出全部技能</button>
+        </div>
+      </div>
+
+      <div class="skill-grid" id="skillGrid"></div>
+    </section>
+
+    <!-- 拆解结果 -->
+    <section id="view-run" class="view hidden">
+      <div class="card run-head">
+        <div>
+          <h2>拆解结果</h2>
+          <p class="muted" id="runSummary">还没有运行记录。</p>
+        </div>
+        <div class="run-actions">
+          <button class="btn small" id="copyAllBtn">复制全部提示词</button>
+          <button class="btn small" id="downloadRunBtn">导出本次结果</button>
+        </div>
+      </div>
+      <div id="runSteps" class="run-steps"></div>
+    </section>
+  </main>
+
+  <dialog id="channelDialog">
+    <div class="dialog-head"><h2>模型通道</h2><button class="link" id="channelClose">关闭</button></div>
+    <p class="muted">留空时按技能模板在本地装配提示词，不请求任何在线服务。填入 OpenAI 兼容地址后，「一键拆解」会按节点依次真实调用。</p>
+    <label>接口地址<input id="chBase" placeholder="https://example.com/v1" /></label>
+    <label>模型名<input id="chModel" placeholder="模型标识" /></label>
+    <label>API Key<input id="chKey" type="password" placeholder="只保存在本机浏览器" /></label>
+    <div class="row end">
+      <button class="btn small" id="chTest">测试连接</button>
+      <button class="btn small" id="chClear">清除</button>
+      <button class="btn primary small" id="chSave">保存</button>
+    </div>
+    <p class="hint" id="chNote"></p>
+  </dialog>
+
+  <dialog id="editDialog">
+    <div class="dialog-head"><h2 id="editTitle">编辑技能</h2><button class="link" id="editClose">关闭</button></div>
+    <textarea id="editText" class="edit-area" spellcheck="false"></textarea>
+    <div class="row end"><button class="btn small" id="editCancel">取消</button><button class="btn primary small" id="editSave">保存技能</button></div>
+  </dialog>
+
+  <dialog id="confirmDialog" class="confirm-dialog">
+    <p id="confirmText" class="confirm-text"></p>
+    <div class="row end">
+      <button class="btn small" id="confirmNo">取消</button>
+      <button class="btn primary small" id="confirmYes">确定</button>
+    </div>
+  </dialog>
+
+  <div class="toast hidden" id="toast"></div>
+
+  <script src="./lib/skill-format.js"></script>
+  <script src="./skills/builtin.js"></script>
+  <script src="./app.js"></script>
+</body>
+</html>
