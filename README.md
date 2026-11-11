@@ -2,6 +2,8 @@
 
 把短视频流水线的九个节点做成可替换的技能槽位：上传技能、绑定到节点、随时更换，不用改代码。
 
+在线地址：https://ygtemple.github.io/skill-node-workbench/
+
 ## 怎么打开
 
 双击 `index.html` 即可，不需要 Node、不需要联网。也可以用 `打开工作台.bat`。
